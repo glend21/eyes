@@ -3,13 +3,16 @@
     Gets and caches all the system information
 '''
 
-class Instrument:
+
+class Instrument():
     def __init__( self ):
         # CPU data is stores as a tuple (work, tot, perc)
         self.num_cpus = 0
         self.cpus = []
         self.cpu_all = (0, 0, 0.0)
+        self.cpu_names = [ "CPU all" ]
 
+        # Create an empty list of CPU data
         with open( "/proc/stat", "rt") as ifh:
             while True:
                 tag = ifh.readline().split()[ 0 ]
@@ -18,11 +21,12 @@ class Instrument:
                 if tag[ 0 : 3 ] == "cpu":
                     if len( tag ) > 3:
                         self.cpus.append( (0, 0, 0.0) )
+                        self.cpu_names.append( tag )
                 else:
                     break
 
 
-    def fetch( self ):
+    def update( self ):
         ''' Reads all system data '''
 
         # Make the IO as efficient as possible
@@ -64,3 +68,7 @@ class Instrument:
 
         #print( "%s [%.1f]" % ('#' * int( cpu_perc ), cpu_perc) )
         return (work, tot, perc)
+
+
+# Semi-singleton instance
+It = Instrument()

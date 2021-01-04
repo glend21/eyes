@@ -7,18 +7,18 @@ import math
 import wx
 
 import globals as gl
+import instrument
 
 
 class AMonitorPanel( wx.Panel ):
     ''' ABC for all monitor panels '''
 
-    def __init__( self, parent, pos ):
+    def __init__( self, parent, title="" ):
         ''' ctor '''
 
-        print( "Creating panel at (%d, %d)" % (pos.x, pos.y) )
-        print( "             size (%d, %d)" % (gl.panel_width, gl.panel_height) )
-        wx.Panel.__init__( self, parent, pos=pos, size=wx.Size( gl.panel_width, gl.panel_height ) )
+        wx.Panel.__init__( self, parent, size=wx.Size( gl.panel_width, gl.panel_height ) )
         self.myParent = parent
+        self.title = title
         self.SetBackgroundColour( wx.TheColourDatabase.Find( "GREY" ) )
 
         psize = self.GetClientSize()
@@ -52,10 +52,10 @@ class AMonitorPanel( wx.Panel ):
 class CpuMonitorPanel( AMonitorPanel ):
     ''' Monitor panel for CPU usage '''
 
-    def __init__( self, parent, pos ):
+    def __init__( self, parent, title="" ):
         ''' ctor '''
 
-        AMonitorPanel.__init__( self, parent, pos=pos )
+        AMonitorPanel.__init__( self, parent, title )
         self.work = 0.0
         self.tot = 0.0
         self.spoke = 0
@@ -67,7 +67,7 @@ class CpuMonitorPanel( AMonitorPanel ):
 
         dc = wx.PaintDC( self )
 
-        length = self.radius * self.myParent.instrument.cpu_all[ 2 ]
+        length = self.radius * instrument.It.cpu_all[ 2 ]
         if length <= 0.0:
             return
         elif length < self.radius * 0.25:
