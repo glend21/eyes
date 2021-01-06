@@ -3,6 +3,7 @@
 '''
 
 import math
+import time
 
 import wx
 
@@ -23,13 +24,16 @@ class AMonitorPanel( wx.Panel ):
 
         psize = self.GetClientSize()
         self.centre = wx.Point( int( psize.width / 2 ), int( psize.height / 2 ) )
-        self.radius = int( psize.height / 3)
+        self.radius = int( psize.height / 4)
+
 
         # Pre-calc as much as we can to save time later
         self.lines = []        # [theta, start pt, end pt, colour]
+        start_time = time.localtime()
+        step = int( -360 / gl.num_spokes )
         # Theta starts at 90-deg and go clockwise (decreasing)
-        for theta in range( 90, -270, int( -360 / gl.num_spokes ) ):
-            rad_theta = math.radians( theta )
+        for theta in range( 90, -270, step ):
+            rad_theta = math.radians( theta + (start_time.tm_sec * step) )   # step is -ve
             self.lines.append( [ rad_theta,
                                   self._calc_point( self.centre, self.radius, rad_theta ),
                                   wx.Point(),
@@ -45,6 +49,17 @@ class AMonitorPanel( wx.Panel ):
         pt = wx.Point( centre.x + int( radius * math.cos( rtheta ) ),
                        centre.y - int( radius * math.sin( rtheta ) ) )
         return pt
+
+
+    def _draw_label( self, dc, text ):
+        ''' Draws the text label on the panel's DC '''
+        size = dc.GetTextExtent( text )
+        pen = dc.GetPen()
+        dc.SetPen( wxPen( wx.BLACK, 3) )
+        dc.DrawText( text, 
+                     self.radius - int( size.width / 2 ), 
+                     self.radius + int( size.height / 2 ) )
+        dc.SetPen( pen )
 
 
 '''
@@ -67,7 +82,8 @@ class CpuMonitorPanel( AMonitorPanel ):
 
         dc = wx.PaintDC( self )
 
-        length = self.radius * instrument.It.cpu_all[ 2 ]
+        length = self.radius * instrument.It.cpus[ self.title ][ 2 ]
+        print( self.title, length )
         if length <= 0.0:
             return
         elif length < self.radius * 0.25:
@@ -95,8 +111,6 @@ class CpuMonitorPanel( AMonitorPanel ):
 
         dc.SetPen( wx.Pen( wx.BLUE, 5 ) )
         marker = self._calc_point( self.centre, self.radius - 10, pt[ 0 ] )
-        print( "S: (%d, %d)" % (pt[1].x, pt[1].y) )
-        print( "M: (%d, %d)" % (marker.x, marker.y) )
         dc.DrawLine( marker, marker )
         
         if self.spoke == len( self.lines ):

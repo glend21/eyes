@@ -72,9 +72,8 @@ class WheelFrame( wx.Frame ):
 
     def __create_tool_menu( self, menu ):
         ''' Adds entries to the Tools menu '''
-        for cpu in instrument.It.cpu_names:
+        for cpu in instrument.It.cpus:
             id = wx.NewId()
-            print( "Generated ID: %d" % id )
             tool = menu.Append( id, cpu, "Add CPU monitor" )
             self.Bind( wx.EVT_MENU, self.OnAddTool, tool ) #id=id )
             self.tool_menu_items[ id ] = cpu
@@ -84,7 +83,6 @@ class WheelFrame( wx.Frame ):
     # Event handlers
     # 
     def OnExit( self, ev ):
-        print( "I shouldn't be here" )
         self.timer.Stop()
         self.Close( True )
 
@@ -102,7 +100,6 @@ class WheelFrame( wx.Frame ):
 
     def OnAddTool( self, ev ):
         ''' Adds the specified panel to the main frame '''
-        print(" Menu! %d" % ev.GetId() )
 
         monitor = panels.CpuMonitorPanel( self, title=self.tool_menu_items[ ev.GetId() ] )
         self.monitors.append( monitor )
