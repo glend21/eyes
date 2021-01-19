@@ -11,6 +11,60 @@ import globals as gl
 import instrument
 
 
+class MonitorMenu( wx.Menu ):
+    ''' Right-click context menu for a panel '''
+
+    def __init__( self, parent ):
+        ''' ctor '''
+
+        wx.Menu.__init__( self )
+        self.parent = parent
+        self.idmap = {}
+
+        id = wx.NewId()
+        min1 = self.AppendRadioItem( id, "2 minutes" )
+        self.Bind( wx.EVT_MENU, self.OnAction, min1 )
+        self.idmap[ id ] = 2
+
+        id = wx.NewId()
+        min5 = self.AppendRadioItem( id, "10 minutes" )
+        self.Bind( wx.EVT_MENU, self.OnAction, min5 )
+        self.idmap[ id ] = 10
+        
+        id = wx.NewId()
+        min10 = self.AppendRadioItem( id, "30 minutes" )
+        self.Bind( wx.EVT_MENU, self.OnAction, min10 )
+        self.idmap[ id ] = 30
+        
+        id = wx.NewId()
+        hr1 = self.AppendRadioItem( id, "1 hour" )
+        self.Bind( wx.EVT_MENU, self.OnAction, hr1 )
+        self.idmap[ id ] = 60
+        
+        id = wx.NewId()
+        hr6 = self.AppendRadioItem( id, "6 hours" )
+        self.Bind( wx.EVT_MENU, self.OnAction, hr6 )
+        self.idmap[ id ] = 360
+        
+        id = wx.NewId()
+        hr12 = self.AppendRadioItem( id, "12 hours")
+        self.Bind( wx.EVT_MENU, self.OnAction, hr12 )
+        self.idmap[ id ] = 720
+        
+        id = wx.NewId()
+        hr24 = self.AppendRadioItem( id, "24 hours")
+        self.Bind( wx.EVT_MENU, self.OnAction, hr24 )
+        self.idmap[ id ] = 1440
+        
+
+    def OnAction( self, ev ):
+        ''' Handle the menu click '''
+        print( ev.GetId() )
+        if not self.parent is None:
+            self.parent.set_minutes( self.idmap[ ev.GetId() ] )
+
+
+
 class AMonitorPanel( wx.Panel ):
     ''' ABC for all monitor panels '''
 
@@ -26,13 +80,15 @@ class AMonitorPanel( wx.Panel ):
         self.centre = wx.Point( int( psize.width / 2 ), int( psize.height / 2 ) )
         self.radius = int( psize.height / 4)
         self.spoke = 0
+        self.minutes = 2        # Default periord for all panels
+        self.ping_count = 0     # Counts up to self.minutes
 
         # Pre-calc as much as we can to save time later
         self.lines = []        # [theta, start pt, end pt, colour]
         start_time = time.localtime()
         step = int( -360 / gl.num_spokes )
         print( "Starting at ")
-        # Theta starts at 90-deg and go clockwise (decreasing)
+        # Theta starts at 90-deg and goes clockwise (decreasing)
         for theta in range( 90, -270, step ):
             rad_theta = math.radians( theta + (start_time.tm_sec * step) )   # step is -ve
             self.lines.append( [ rad_theta,
@@ -41,8 +97,9 @@ class AMonitorPanel( wx.Panel ):
                                   None
                                 ] )
 
-        # Now subscribe us to the paint event
+        # Now subscribe us to the events
         self.Bind( wx.EVT_PAINT, self.OnPaint )
+        self.Bind( wx.EVT_RIGHT_DOWN, self.OnRightDown )
 
 
     @classmethod
@@ -54,6 +111,32 @@ class AMonitorPanel( wx.Panel ):
             return MemMonitorPanel( parent, title )
         else:
             return None
+
+
+    def ping( self ):
+        ''' Called by the timer handler, determines if we need to repaint this monitor '''
+
+        if self.ping_count < self.minutes * 60 / gl.num_spokes:
+            self.ping_count += 1
+        else:
+            self.ping_count = 0
+            self.Refresh()
+
+
+    def set_minutes( self, val ):
+        ''' Sets the number of minutes per period, clears the display '''
+        self.minutes = val
+        self.ping_count = 0
+        self.spoke = 0
+        # self.lines = []
+
+        # Start redrawing from the beginning
+        self.Refresh()
+
+
+    def OnRightDown( self, ev ):
+        ''' Right-click handler '''
+        self.PopupMenu( MonitorMenu( self ), ev.GetPosition() )
 
 
     def _calc_point( self, centre, radius, rtheta ):
@@ -120,7 +203,7 @@ class CpuMonitorPanel( AMonitorPanel ):
         self.cpu_colours = ( ( 0.25, wx.GREEN ),
                              ( 0.50, wx.YELLOW ),
                              ( 0.75, wx.TheColourDatabase.Find( "ORANGE" ) ),
-                             ( 1.0, wx.RED) )
+                             ( 1.0, wx.RED ) )
 
 
     def OnPaint( self, event ):
@@ -136,22 +219,7 @@ class CpuMonitorPanel( AMonitorPanel ):
             print( "no colour" )
             return
 
-        '''    
-        if length <= 0.0:
-            return
-        elif length < self.radius * 0.25:
-            colour = wx.Pen( wx.GREEN, 3 ) 
-        elif length < self.radius * 0.50:
-            colour = wx.Pen( wx.YELLOW, 3 )
-        elif length < self.radius * 0.75:
-            colour = wx.Pen( wx.TheColourDatabase.Find( "ORANGE" ) )
-        else:
-            colour = wx.Pen( wx.RED, 3 )
-        '''
-
         self._draw_spoke( dc, length, colour )
-        # Calc the endpoint of the next line
-        # spoke [0] == theta in radians, [1] == start point, [2] = end point
 
 
 class MemMonitorPanel( AMonitorPanel ):
@@ -163,7 +231,7 @@ class MemMonitorPanel( AMonitorPanel ):
         self.percent = 0.0
         self.mem_colours = ( ( 0.80, wx.GREEN ),
                              ( 0.90, wx.YELLOW),
-                             ( 1.00, wx.RED) )
+                             ( 1.00, wx.RED ) )
 
 
     def OnPaint( self, event ):

@@ -9,11 +9,8 @@ import psutil
 class Instrument():
     def __init__( self ):
         # CPU data is stores as a tuple (work, tot, perc)
-        #self.num_cpus = 0
         self.cpus = {}
         self.memory = 0.0
-        # self.cpu_all = (0, 0, 0.0)
-        #self.cpu_names = [ "CPU all" ]
 
         # Create an empty list of CPU data
         with open( "/proc/stat", "rt") as ifh:

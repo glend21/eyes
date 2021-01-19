@@ -104,7 +104,6 @@ class WheelFrame( wx.Frame ):
         return menu
 
 
-
     #
     # Event handlers
     # 
@@ -126,7 +125,7 @@ class WheelFrame( wx.Frame ):
 
         # Now get each monitor to Paint itself
         for monitor in self.monitors:
-            monitor.Refresh( eraseBackground=False )
+            monitor.ping()
 
 
     def OnAddTool( self, ev ):
