@@ -59,7 +59,6 @@ class MonitorMenu( wx.Menu ):
 
     def OnAction( self, ev ):
         ''' Handle the menu click '''
-        print( ev.GetId() )
         if not self.parent is None:
             self.parent.set_minutes( self.idmap[ ev.GetId() ] )
 
@@ -115,7 +114,6 @@ class AMonitorPanel( wx.Panel ):
         self.lines = []        # [theta, start pt, end pt, colour]
         start_time = time.localtime()
         step = int( -360 / gl.num_spokes )
-        print( "Starting at ")
         # Theta starts at 90-deg and goes clockwise (decreasing)
         for theta in range( 90, -270, step ):
             rad_theta = math.radians( theta + (start_time.tm_sec * step) )   # step is -ve
@@ -215,7 +213,6 @@ class AMonitorPanel( wx.Panel ):
             ln2.draw( dc )
 
         dc.SetPen( wx.Pen( wx.BLUE, 5 ) )
-        print( "--> ", ln.theta )
         marker = self._calc_point( self.centre, self.radius - 10, ln.theta )
         dc.DrawLine( marker, marker )
         
@@ -245,16 +242,13 @@ class CpuMonitorPanel( AMonitorPanel ):
 
     def OnPaint( self, event ):
         ''' Handle the timer interrupt '''
-        print( "Ping!" )
 
         dc = wx.PaintDC( self )
 
         val = instrument.It.cpus[ self.title ][ 2 ]
         length = self.radius * val
-        print( self.title, length )
         colour = self._colourise( length, self.cpu_colours )
         if colour is None:
-            print( "no colour" )
             return
 
         self._draw_spokes( dc, length, colour )
@@ -275,7 +269,6 @@ class MemMonitorPanel( AMonitorPanel ):
 
     def OnPaint( self, event ):
         ''' Handle the paint event from the timer '''
-        print( "Mem ping" )
 
         dc = wx.PaintDC( self )
 
@@ -301,8 +294,8 @@ class NetMonitorPanel( AMonitorPanel ):
     def OnPaint( self, ev ):
         ''' Handles paint event '''
 
-        print( "Send: %d" % (instrument.It.net_send) )        #  / 1000) )
-        print( "Recv: %d" % (instrument.It.net_recv) )      #  / 1000) )
+        # print( "Send: %d" % (instrument.It.net_send) )        #  / 1000) )
+        # print( "Recv: %d" % (instrument.It.net_recv) )      #  / 1000) )
 
         dc = wx.PaintDC( self )
         sent = instrument.It.net_send

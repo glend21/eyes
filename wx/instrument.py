@@ -71,7 +71,6 @@ class Instrument():
         else:
             perc = 0.0
 
-        #print( "%s [%.1f]" % ('#' * int( cpu_perc ), cpu_perc) )
         return (work, tot, perc)
 
 
