@@ -24,18 +24,23 @@ class WheelFrame( wx.Frame ):
         mnuExit = filemenu.Append( wx.ID_EXIT, "E&xit", "Exit the program" )
 
         self.tool_menu_items = {}
-        toolmenu = wx.Menu()
-        self.__create_tool_menu( toolmenu )
+        toolmenu = self.__create_tool_menu()
+        prefsmenu = self.__create_prefs_menu()
+        helpmenu = wx.Menu()
+        mnuAbout = helpmenu.Append( wx.ID_ABOUT, "&About", "About" )
 
         menubar = wx.MenuBar()
         menubar.Append( filemenu, "&File" )
         menubar.Append( toolmenu, "&Tools" )
+        menubar.Append( prefsmenu, "&Preferences" )
+        menubar.Append( helpmenu, "&Help" )
         self.SetMenuBar( menubar )
-
-        self.SetBackgroundColour( wx.TheColourDatabase.Find( "LIGHT GREY" ) )
 
         # Event bindings
         self.Bind( wx.EVT_MENU, self.OnExit, mnuExit )
+        self.Bind( wx.EVT_MENU, self.OnAbout, mnuAbout )
+
+        self.SetBackgroundColour( wx.TheColourDatabase.Find( "LIGHT GREY" ) )
 
         # Create some static geometry to save time later
         self.geom = { 
@@ -70,13 +75,34 @@ class WheelFrame( wx.Frame ):
         self.Show( True )
 
 
-    def __create_tool_menu( self, menu ):
-        ''' Adds entries to the Tools menu '''
+    def __create_tool_menu( self ):
+        ''' Creates and adds entries to the Tools menu '''
+
+        menu = wx.Menu()
+        # FIXME pre-creating all the monitor panels here, rather than when they are added to the main frame
         for cpu in instrument.It.cpus:
             id = wx.NewId()
             tool = menu.Append( id, cpu, "Add CPU monitor" )
-            self.Bind( wx.EVT_MENU, self.OnAddTool, tool ) #id=id )
+            self.Bind( wx.EVT_MENU, self.OnAddTool, tool )
             self.tool_menu_items[ id ] = cpu
+
+        id = wx.NewId()
+        tool = menu.Append( id, "mem", "Add Memory monitor" )
+        self.Bind( wx.EVT_MENU, self.OnAddTool, tool )
+        self.tool_menu_items[ id ] = "mem"
+
+        return menu
+
+
+    def __create_prefs_menu( self ):
+        ''' Creates and adds entries to the Preferences menu '''
+        menu = wx.Menu()
+        id = wx.NewId()
+        pref = menu.AppendCheckItem( id, "Log output to file ...", "Log output to file" )
+        self.Bind( wx.EVT_MENU, self.OnLogToggle, pref )
+
+        return menu
+
 
 
     #
@@ -86,6 +112,11 @@ class WheelFrame( wx.Frame ):
         self.timer.Stop()
         self.Close( True )
 
+    def OnAbout( self, ev ):
+        title = "System Eyes"
+        dlg = wx.MessageDialog( self, title, title, wx.ICON_INFORMATION | wx.OK )
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def OnTimer( self, ev ):
         ''' Receives the timer notification '''
@@ -101,7 +132,13 @@ class WheelFrame( wx.Frame ):
     def OnAddTool( self, ev ):
         ''' Adds the specified panel to the main frame '''
 
-        monitor = panels.CpuMonitorPanel( self, title=self.tool_menu_items[ ev.GetId() ] )
+        tag = self.tool_menu_items[ ev.GetId() ]
+        monitor = panels.AMonitorPanel.create( tag, self, tag )
         self.monitors.append( monitor )
         self.sizer.Add( monitor )
         self.sizer.Layout()       
+
+
+    def OnLogToggle( self, ev ):
+        ''' When the user selects or deselects to output to a file '''
+        print( "Hi Sparky" )

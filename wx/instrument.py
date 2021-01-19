@@ -3,12 +3,15 @@
     Gets and caches all the system information
 '''
 
+import psutil
+
 
 class Instrument():
     def __init__( self ):
         # CPU data is stores as a tuple (work, tot, perc)
         #self.num_cpus = 0
         self.cpus = {}
+        self.memory = 0.0
         # self.cpu_all = (0, 0, 0.0)
         #self.cpu_names = [ "CPU all" ]
 
@@ -26,6 +29,9 @@ class Instrument():
     def update( self ):
         ''' Reads all system data '''
 
+        #
+        # CPU
+
         # Make the IO as efficient as possible
         # The aggregated CPU data is on the first line
         with open( "/proc/stat", "rt" ) as ifh:
@@ -35,6 +41,11 @@ class Instrument():
                     self.cpus[ fields[ 0 ] ] = self.__calc_perc( fields )
                 else:
                     break
+
+        #
+        # Memory
+        mem = psutil.virtual_memory()
+        self.memory = mem.percent
 
 
     def __calc_perc( self, fields ):

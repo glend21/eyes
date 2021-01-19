@@ -25,12 +25,13 @@ class AMonitorPanel( wx.Panel ):
         psize = self.GetClientSize()
         self.centre = wx.Point( int( psize.width / 2 ), int( psize.height / 2 ) )
         self.radius = int( psize.height / 4)
-
+        self.spoke = 0
 
         # Pre-calc as much as we can to save time later
         self.lines = []        # [theta, start pt, end pt, colour]
         start_time = time.localtime()
         step = int( -360 / gl.num_spokes )
+        print( "Starting at ")
         # Theta starts at 90-deg and go clockwise (decreasing)
         for theta in range( 90, -270, step ):
             rad_theta = math.radians( theta + (start_time.tm_sec * step) )   # step is -ve
@@ -42,6 +43,17 @@ class AMonitorPanel( wx.Panel ):
 
         # Now subscribe us to the paint event
         self.Bind( wx.EVT_PAINT, self.OnPaint )
+
+
+    @classmethod
+    def create( cls, tag, parent, title ):
+        ''' Factory method to create the correct sub-class '''
+        if tag[ : 3 ] == "cpu":
+            return CpuMonitorPanel( parent, title )
+        elif tag[ : 3 ] == "mem":
+            return MemMonitorPanel( parent, title )
+        else:
+            return None
 
 
     def _calc_point( self, centre, radius, rtheta ):
@@ -62,41 +74,19 @@ class AMonitorPanel( wx.Panel ):
         dc.SetPen( pen )
 
 
-'''
-'''
-class CpuMonitorPanel( AMonitorPanel ):
-    ''' Monitor panel for CPU usage '''
+    def _colourise( self, value, bins ):
+        ''' Returns a wx.Pen of the correct colour depending on the range of value '''
+        floor = 0.0
+        for b in bins:
+            if value > self.radius * floor and value <= self.radius * b[0]:
+                return wx.Pen( b[1], 3 )
+            else:
+                floor = b[0]
 
-    def __init__( self, parent, title="" ):
-        ''' ctor '''
+        return None
 
-        AMonitorPanel.__init__( self, parent, title )
-        self.work = 0.0
-        self.tot = 0.0
-        self.spoke = 0
-
-
-    def OnPaint( self, event ):
-        ''' Handle the timer interrupt '''
-        print( "Ping!" )
-
-        dc = wx.PaintDC( self )
-
-        length = self.radius * instrument.It.cpus[ self.title ][ 2 ]
-        print( self.title, length )
-        if length <= 0.0:
-            return
-        elif length < self.radius * 0.25:
-            colour = wx.Pen( wx.GREEN, 3 ) 
-        elif length < self.radius * 0.50:
-            colour = wx.Pen( wx.YELLOW, 3 )
-        elif length < self.radius * 0.75:
-            colour = wx.Pen( wx.TheColourDatabase.Find( "ORANGE" ) )
-        else:
-            colour = wx.Pen( wx.RED, 3 )
-
-        # Calc the endpoint of the next line
-        # spoke [0] == theta in radians, [1] == start point, [2] = end point
+    def _draw_spoke( self, dc, length, colour ):
+        ''' Draws all spokes up to the current one '''
         pt = self.lines[ self.spoke ]
         end = self._calc_point( self.centre, self.radius + length, pt[ 0 ] )
         pt[ 2 ] = end
@@ -116,3 +106,74 @@ class CpuMonitorPanel( AMonitorPanel ):
         if self.spoke == len( self.lines ):
             self.spoke = 0
 
+'''
+'''
+class CpuMonitorPanel( AMonitorPanel ):
+    ''' Monitor panel for CPU usage '''
+
+    def __init__( self, parent, title="" ):
+        ''' ctor '''
+ 
+        AMonitorPanel.__init__( self, parent, title )
+        self.work = 0.0
+        self.tot = 0.0
+        self.cpu_colours = ( ( 0.25, wx.GREEN ),
+                             ( 0.50, wx.YELLOW ),
+                             ( 0.75, wx.TheColourDatabase.Find( "ORANGE" ) ),
+                             ( 1.0, wx.RED) )
+
+
+    def OnPaint( self, event ):
+        ''' Handle the timer interrupt '''
+        print( "Ping!" )
+
+        dc = wx.PaintDC( self )
+
+        length = self.radius * instrument.It.cpus[ self.title ][ 2 ]
+        print( self.title, length )
+        colour = self._colourise( length, self.cpu_colours )
+        if colour is None:
+            print( "no colour" )
+            return
+
+        '''    
+        if length <= 0.0:
+            return
+        elif length < self.radius * 0.25:
+            colour = wx.Pen( wx.GREEN, 3 ) 
+        elif length < self.radius * 0.50:
+            colour = wx.Pen( wx.YELLOW, 3 )
+        elif length < self.radius * 0.75:
+            colour = wx.Pen( wx.TheColourDatabase.Find( "ORANGE" ) )
+        else:
+            colour = wx.Pen( wx.RED, 3 )
+        '''
+
+        self._draw_spoke( dc, length, colour )
+        # Calc the endpoint of the next line
+        # spoke [0] == theta in radians, [1] == start point, [2] = end point
+
+
+class MemMonitorPanel( AMonitorPanel ):
+    ''' Monitor panel for memory usage '''
+
+    def __init__( self, parent, title="" ):
+        ''' Ctor '''
+        AMonitorPanel.__init__( self, parent, title )
+        self.percent = 0.0
+        self.mem_colours = ( ( 0.80, wx.GREEN ),
+                             ( 0.90, wx.YELLOW),
+                             ( 1.00, wx.RED) )
+
+
+    def OnPaint( self, event ):
+        ''' Handle the paint event from the timer '''
+        print( "Mem ping" )
+
+        dc = wx.PaintDC( self )
+        length = self.radius * instrument.It.memory / 100.0
+        colour = self._colourise( length, self.mem_colours )
+        if colour is None:
+            return
+
+        self._draw_spoke( dc, length, colour )
