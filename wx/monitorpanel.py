@@ -64,6 +64,34 @@ class MonitorMenu( wx.Menu ):
             self.parent.set_minutes( self.idmap[ ev.GetId() ] )
 
 
+class Line:
+    ''' A line on the panel '''
+    def __init__( self, theta, startpt, endpt, colour ):
+        ''' ctor '''
+        self.theta = theta      # all line segments have the same angle
+        self.segment = []
+        self.add_segment( startpt, endpt, colour )
+
+    def add_segment( self, startpt, endpt, colour ):
+        ''' Add a line segment to the collection '''
+        self.segment.append( [ startpt, endpt, colour ] )
+
+    def set_segment( self, idx, startpt, endpt, colour ):
+        ''' Sets the values of the idx'th segment. Fails silently if out of range '''
+
+        if idx < len( self.segment ):
+            self.segment[ idx ][ 0 ] = startpt
+            self.segment[ idx ][ 1 ] = endpt
+            self.segment[ idx ][ 2 ] = colour
+
+
+    def draw( self, dc ):
+        ''' Draw all line segments on the given DC '''
+        for seg in self.segment:
+            if seg[ 2 ] is not None:
+                dc.SetPen( wx.Pen( seg[ 2 ], 3 ) )
+                dc.DrawLine( seg[ 0 ], seg[ 1 ] )
+
 
 class AMonitorPanel( wx.Panel ):
     ''' ABC for all monitor panels '''
@@ -91,11 +119,12 @@ class AMonitorPanel( wx.Panel ):
         # Theta starts at 90-deg and goes clockwise (decreasing)
         for theta in range( 90, -270, step ):
             rad_theta = math.radians( theta + (start_time.tm_sec * step) )   # step is -ve
-            self.lines.append( [ rad_theta,
-                                  self._calc_point( self.centre, self.radius, rad_theta ),
-                                  wx.Point(),
-                                  None
-                                ] )
+            self.lines.append( Line( rad_theta,
+                                     self._calc_point( self.centre, self.radius, rad_theta ),
+                                     wx.Point(),
+                                     None
+                                    )
+                             )
 
         # Now subscribe us to the events
         self.Bind( wx.EVT_PAINT, self.OnPaint )
@@ -109,6 +138,8 @@ class AMonitorPanel( wx.Panel ):
             return CpuMonitorPanel( parent, title )
         elif tag[ : 3 ] == "mem":
             return MemMonitorPanel( parent, title )
+        elif tag[ : 3 ] == "net":
+            return NetMonitorPanel( parent, title )
         else:
             return None
 
@@ -140,7 +171,7 @@ class AMonitorPanel( wx.Panel ):
 
 
     def _calc_point( self, centre, radius, rtheta ):
-        ''' Calculates a point on the radius of a circle with given centre radius and angle '''
+        ''' Calculates a point on the circmference of a circle with given centre radius and angle '''
         pt = wx.Point( centre.x + int( radius * math.cos( rtheta ) ),
                        centre.y - int( radius * math.sin( rtheta ) ) )
         return pt
@@ -162,32 +193,36 @@ class AMonitorPanel( wx.Panel ):
         floor = 0.0
         for b in bins:
             if value > self.radius * floor and value <= self.radius * b[0]:
-                return wx.Pen( b[1], 3 )
+                return b[1]
             else:
                 floor = b[0]
 
         return None
 
-    def _draw_spoke( self, dc, length, colour ):
+
+    def _draw_spokes( self, dc, length, colour ):
         ''' Draws all spokes up to the current one '''
-        pt = self.lines[ self.spoke ]
-        end = self._calc_point( self.centre, self.radius + length, pt[ 0 ] )
-        pt[ 2 ] = end
-        pt[ 3 ] = colour
+
+        # Add new spoke with one line segment
+        ln = self.lines[ self.spoke ]
+        end = self._calc_point( self.centre, self.radius + length, ln.theta )
+        ln.segment[ 0 ][ 1 ] = end
+        ln.segment[ 0 ][ 2 ] = colour
         self.spoke += 1
 
-        # Draw *all* lines
-        for ln in self.lines:
-            if ln[ 3 ] is not None:
-                dc.SetPen( ln[ 3 ] );
-                dc.DrawLine( ln[ 1 ], ln[ 2 ] )
+        # Draw *all* spokes
+        for ln2 in self.lines:
+            ln2.draw( dc )
 
         dc.SetPen( wx.Pen( wx.BLUE, 5 ) )
-        marker = self._calc_point( self.centre, self.radius - 10, pt[ 0 ] )
+        print( "--> ", ln.theta )
+        marker = self._calc_point( self.centre, self.radius - 10, ln.theta )
         dc.DrawLine( marker, marker )
         
         if self.spoke == len( self.lines ):
             self.spoke = 0
+
+
 
 '''
 '''
@@ -219,7 +254,7 @@ class CpuMonitorPanel( AMonitorPanel ):
             print( "no colour" )
             return
 
-        self._draw_spoke( dc, length, colour )
+        self._draw_spokes( dc, length, colour )
 
 
 class MemMonitorPanel( AMonitorPanel ):
@@ -244,4 +279,69 @@ class MemMonitorPanel( AMonitorPanel ):
         if colour is None:
             return
 
-        self._draw_spoke( dc, length, colour )
+        self._draw_spokes( dc, length, colour )
+
+
+class NetMonitorPanel( AMonitorPanel ):
+    ''' Monitor panel for netwrok interfaces '''
+
+    def __init__( self, parent, title="" ):
+        ''' Ctor '''
+        AMonitorPanel.__init__( self, parent, title )
+        self.net_colours = ( )
+
+
+    def OnPaint( self, ev ):
+        ''' Handles paint event '''
+
+        print( "Send: %d" % (instrument.It.net_send) )        #  / 1000) )
+        print( "Recv: %d" % (instrument.It.net_recv) )      #  / 1000) )
+
+        dc = wx.PaintDC( self )
+        sent = instrument.It.net_send
+        recv = instrument.It.net_recv
+        tot = sent + recv
+
+        ln = self.lines[ self.spoke ]
+
+        # The inner (sent) line segment
+        colour = wx.TheColourDatabase.Find( "BLUE VIOLET" )
+        end = self._calc_point( self.centre, self.radius + sent, ln.theta )
+        ln.segment[ 0 ][ 1 ] = end
+        ln.segment[ 0 ][ 2 ] = colour
+
+        # The outer (recv) segment
+        colour = wx.TheColourDatabase.Find( "MEDIUM TURQUOISE" )
+        if len( ln.segment ) == 1:
+            ln.add_segment( end, 
+                            self._calc_point( self.centre, self.radius + sent + recv, ln.theta ),
+                            colour ) 
+        else:
+            ln.set_segment( 1, 
+                            end, 
+                            self._calc_point( self.centre, self.radius + sent + recv, ln.theta ),
+                            colour )
+
+        self.spoke += 1
+
+        # Draw *all* lines
+        for ln2 in self.lines:
+            ln2.draw( dc )
+
+            '''
+            if ln2.segment[ 0 ][ 2 ] is not None:
+                dc.SetPen( wx.Pen( ln2.segment[ 0 ][ 2 ], 3 ) )
+                dc.DrawLine( ln2.segment[ 0 ][ 0 ], ln2.segment[ 0 ][ 1 ] )
+            if ln2.segment[ 1 ][ 2 ] is not None:
+                dc.SetPen( wx.Pen( ln2.segment[ 1 ][ 2 ], 3 ) )
+                dc.DrawLine( ln2.segment[ 1 ][ 0 ], ln2.segment[ 1 ][ 1 ] )
+            '''
+
+
+        dc.SetPen( wx.Pen( wx.BLUE, 5 ) )
+        marker = self._calc_point( self.centre, self.radius - 10, ln.theta )
+        dc.DrawLine( marker, marker )
+        
+        if self.spoke == len( self.lines ):
+            self.spoke = 0
+

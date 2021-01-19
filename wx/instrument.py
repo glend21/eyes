@@ -11,6 +11,8 @@ class Instrument():
         # CPU data is stores as a tuple (work, tot, perc)
         self.cpus = {}
         self.memory = 0.0
+        self.net_send = 0
+        self.net_recv = 0
 
         # Create an empty list of CPU data
         with open( "/proc/stat", "rt") as ifh:
@@ -21,7 +23,6 @@ class Instrument():
                     self.cpus[ tag ] = (0, 0, 0.0)
                 else:
                     break
-        print( self.cpus )
 
     def update( self ):
         ''' Reads all system data '''
@@ -43,6 +44,16 @@ class Instrument():
         # Memory
         mem = psutil.virtual_memory()
         self.memory = mem.percent
+
+        #
+        # Network
+        net = psutil.net_io_counters( nowrap=False )
+        if self.net_recv == 0:
+            self.net_send = net.packets_sent
+            self.net_recv = net.packets_recv
+        else:
+            self.net_send = net.packets_sent - self.net_send
+            self.net_recv = net.packets_recv - self.net_recv
 
 
     def __calc_perc( self, fields ):

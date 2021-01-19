@@ -91,6 +91,11 @@ class WheelFrame( wx.Frame ):
         self.Bind( wx.EVT_MENU, self.OnAddTool, tool )
         self.tool_menu_items[ id ] = "mem"
 
+        id = wx.NewId()
+        tool = menu.Append( id, "net", "Add network menu" )
+        self.Bind( wx.EVT_MENU, self.OnAddTool, tool )
+        self.tool_menu_items[ id ] = "net"
+
         return menu
 
 
