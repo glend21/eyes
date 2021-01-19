@@ -181,10 +181,10 @@ class AMonitorPanel( wx.Panel ):
         ''' Draws the text label on the panel's DC '''
         size = dc.GetTextExtent( text )
         pen = dc.GetPen()
-        dc.SetPen( wxPen( wx.BLACK, 3) )
+        dc.SetPen( wx.Pen( wx.BLACK, 3) )
         dc.DrawText( text, 
-                     self.radius - int( size.width / 2 ), 
-                     self.radius + int( size.height / 2 ) )
+                     self.centre.x - int( size.width / 2 ), 
+                     self.centre.y - int( size.height / 2 ) )
         dc.SetPen( pen )
 
 
@@ -225,7 +225,9 @@ class AMonitorPanel( wx.Panel ):
 
 
 '''
+    Concrete monitors
 '''
+
 class CpuMonitorPanel( AMonitorPanel ):
     ''' Monitor panel for CPU usage '''
 
@@ -247,7 +249,8 @@ class CpuMonitorPanel( AMonitorPanel ):
 
         dc = wx.PaintDC( self )
 
-        length = self.radius * instrument.It.cpus[ self.title ][ 2 ]
+        val = instrument.It.cpus[ self.title ][ 2 ]
+        length = self.radius * val
         print( self.title, length )
         colour = self._colourise( length, self.cpu_colours )
         if colour is None:
@@ -255,6 +258,7 @@ class CpuMonitorPanel( AMonitorPanel ):
             return
 
         self._draw_spokes( dc, length, colour )
+        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title, val) )
 
 
 class MemMonitorPanel( AMonitorPanel ):
@@ -274,12 +278,15 @@ class MemMonitorPanel( AMonitorPanel ):
         print( "Mem ping" )
 
         dc = wx.PaintDC( self )
-        length = self.radius * instrument.It.memory / 100.0
+
+        val = instrument.It.memory / 100.0
+        length = self.radius * val
         colour = self._colourise( length, self.mem_colours )
         if colour is None:
             return
 
         self._draw_spokes( dc, length, colour )
+        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title, val) )
 
 
 class NetMonitorPanel( AMonitorPanel ):
@@ -328,19 +335,12 @@ class NetMonitorPanel( AMonitorPanel ):
         for ln2 in self.lines:
             ln2.draw( dc )
 
-            '''
-            if ln2.segment[ 0 ][ 2 ] is not None:
-                dc.SetPen( wx.Pen( ln2.segment[ 0 ][ 2 ], 3 ) )
-                dc.DrawLine( ln2.segment[ 0 ][ 0 ], ln2.segment[ 0 ][ 1 ] )
-            if ln2.segment[ 1 ][ 2 ] is not None:
-                dc.SetPen( wx.Pen( ln2.segment[ 1 ][ 2 ], 3 ) )
-                dc.DrawLine( ln2.segment[ 1 ][ 0 ], ln2.segment[ 1 ][ 1 ] )
-            '''
-
-
+        # Mark the current point around the circumference
         dc.SetPen( wx.Pen( wx.BLUE, 5 ) )
         marker = self._calc_point( self.centre, self.radius - 10, ln.theta )
         dc.DrawLine( marker, marker )
+
+        self._draw_label( dc, "%s\n[S: %d R: %d]" % (self.title, sent, recv) )
         
         if self.spoke == len( self.lines ):
             self.spoke = 0
