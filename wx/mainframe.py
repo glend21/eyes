@@ -117,7 +117,7 @@ class WheelFrame( wx.Frame ):
         self.Close( True )
 
     def OnAbout( self, ev ):
-        title = "System Eyes"
+        title = "System Eyes\nV 0.1"
         dlg = wx.MessageDialog( self, title, title, wx.ICON_INFORMATION | wx.OK )
         dlg.ShowModal()
         dlg.Destroy()
@@ -145,4 +145,3 @@ class WheelFrame( wx.Frame ):
 
     def OnLogToggle( self, ev ):
         ''' When the user selects or deselects to output to a file '''
-        print( "Hi Sparky" )
