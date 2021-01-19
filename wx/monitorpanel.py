@@ -181,7 +181,7 @@ class AMonitorPanel( wx.Panel ):
         ''' Draws the text label on the panel's DC '''
         size = dc.GetTextExtent( text )
         pen = dc.GetPen()
-        dc.SetPen( wx.Pen( wx.BLACK, 3) )
+        dc.SetPen( wx.Pen( wx.BLACK, 5) )
         dc.DrawText( text, 
                      self.centre.x - int( size.width / 2 ), 
                      self.centre.y - int( size.height / 2 ) )
@@ -258,7 +258,7 @@ class CpuMonitorPanel( AMonitorPanel ):
             return
 
         self._draw_spokes( dc, length, colour )
-        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title, val) )
+        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title.upper(), val) )
 
 
 class MemMonitorPanel( AMonitorPanel ):
@@ -286,7 +286,7 @@ class MemMonitorPanel( AMonitorPanel ):
             return
 
         self._draw_spokes( dc, length, colour )
-        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title, val) )
+        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title.upper, val) )
 
 
 class NetMonitorPanel( AMonitorPanel ):
@@ -340,7 +340,7 @@ class NetMonitorPanel( AMonitorPanel ):
         marker = self._calc_point( self.centre, self.radius - 10, ln.theta )
         dc.DrawLine( marker, marker )
 
-        self._draw_label( dc, "%s\n[S: %d R: %d]" % (self.title, sent, recv) )
+        self._draw_label( dc, "%s\n[S: %d R: %d]" % (self.title.upper, sent, recv) )
         
         if self.spoke == len( self.lines ):
             self.spoke = 0
