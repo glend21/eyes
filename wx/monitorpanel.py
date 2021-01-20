@@ -279,7 +279,7 @@ class MemMonitorPanel( AMonitorPanel ):
             return
 
         self._draw_spokes( dc, length, colour )
-        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title.upper, val) )
+        self._draw_label( dc, "%s\n[%.2f%%]" % (self.title.upper(), val) )
 
 
 class NetMonitorPanel( AMonitorPanel ):
@@ -298,7 +298,7 @@ class NetMonitorPanel( AMonitorPanel ):
         # print( "Recv: %d" % (instrument.It.net_recv) )      #  / 1000) )
 
         dc = wx.PaintDC( self )
-        sent = instrument.It.net_send
+        sent = instrument.It.net_sent
         recv = instrument.It.net_recv
         tot = sent + recv
 
@@ -333,7 +333,7 @@ class NetMonitorPanel( AMonitorPanel ):
         marker = self._calc_point( self.centre, self.radius - 10, ln.theta )
         dc.DrawLine( marker, marker )
 
-        self._draw_label( dc, "%s\n[S: %d R: %d]" % (self.title.upper, sent, recv) )
+        self._draw_label( dc, "%s\n[S: %d R: %d]" % (self.title.upper(), sent, recv) )
         
         if self.spoke == len( self.lines ):
             self.spoke = 0

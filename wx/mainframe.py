@@ -56,16 +56,10 @@ class WheelFrame( wx.Frame ):
 
         # The sizer to hold the panels
         self.sizer = wx.GridSizer( cols=3, gap=wx.Size( 10, 10 ) )
+        self.SetSizer( self.sizer )
 
         # Create some monitor panels
         self.monitors = []
-        '''
-        for p in range( 1 ):        # For the moment
-            monitor = panels.CpuMonitorPanel( self, pos=geom[ "panels" ][ p ][ "origin" ] )
-            self.monitors.append( monitor )
-            sizer.Add( monitor )
-        '''
-        self.SetSizer( self.sizer )
 
         # Create and bind the timer
         self.timer = wx.Timer( self )
@@ -103,9 +97,8 @@ class WheelFrame( wx.Frame ):
         ''' Creates and adds entries to the Preferences menu '''
         menu = wx.Menu()
         id = wx.NewId()
-        pref = menu.AppendCheckItem( id, "Log output to file ...", "Log output to file" )
-        self.Bind( wx.EVT_MENU, self.OnLogToggle, pref )
-
+        log_output = menu.AppendCheckItem( id, "Log output to file ...", "Log output to file" )
+        self.Bind( wx.EVT_MENU, self.OnLogToggle, log_output )
         return menu
 
 
@@ -114,6 +107,7 @@ class WheelFrame( wx.Frame ):
     # 
     def OnExit( self, ev ):
         self.timer.Stop()
+        instrument.It.stop_logging()
         self.Close( True )
 
     def OnAbout( self, ev ):
@@ -145,3 +139,7 @@ class WheelFrame( wx.Frame ):
 
     def OnLogToggle( self, ev ):
         ''' When the user selects or deselects to output to a file '''
+        if ev.IsChecked():
+            instrument.It.start_logging()
+        else:
+            instrument.It.stop_logging()

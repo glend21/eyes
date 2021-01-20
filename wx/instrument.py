@@ -3,15 +3,21 @@
     Gets and caches all the system information
 '''
 
+import os
+import time
+
 import psutil
 
 
 class Instrument():
     def __init__( self ):
         # CPU data is stores as a tuple (work, tot, perc)
+        self.log = False
+        self.log_fh = None
+
         self.cpus = {}
         self.memory = 0.0
-        self.net_send = 0
+        self.net_sent = 0
         self.net_recv = 0
 
         # Create an empty list of CPU data
@@ -49,11 +55,30 @@ class Instrument():
         # Network
         net = psutil.net_io_counters( nowrap=False )
         if self.net_recv == 0:
-            self.net_send = net.packets_sent
+            self.net_sent = net.packets_sent
             self.net_recv = net.packets_recv
         else:
-            self.net_send = net.packets_sent - self.net_send
+            self.net_sent = net.packets_sent - self.net_sent
             self.net_recv = net.packets_recv - self.net_recv
+
+        self._log()
+
+
+    def start_logging( self ):
+        ''' Start logging data to disk '''
+        self.log = True
+        fname = os.path.join( os.path.expanduser( '~' ), "etc", "eyewheel.log" )
+        try:
+            self.log_fh = open( fname, "at")
+        except Exception as ex:
+            print( "Could not open log file %s: %s" % (fname, ex) )
+
+
+    def stop_logging( self ):
+        ''' Stop logging '''
+        if self.log_fh is not None:
+            self.log_fh.close()
+        self.log = False
 
 
     def __calc_perc( self, fields ):
@@ -73,6 +98,19 @@ class Instrument():
 
         return (work, tot, perc)
 
+
+    def _log( self ):
+        '''' Log data to disk '''
+        if self.log and self.log_fh is not None and not self.log_fh.closed:
+            str = "%f [%s] cpu " % (time.time(), time.ctime())
+            for c in self.cpus.values():
+                str += "%.2f " % c[2]
+            str += "mem %.2f " % self.memory
+            str += "net_r %d net_s %d" % (self.net_recv, self.net_sent)
+            str += "\n"
+            print( str )
+
+            self.log_fh.write( str )
 
 # Semi-singleton instance
 It = Instrument()
